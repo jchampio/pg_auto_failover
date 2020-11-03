@@ -29,7 +29,6 @@ def test_001_init_primary():
 
     node1.wait_until_pg_is_running()
     node1.set_user_password("pgautofailover_monitor", "monitor_password")
-    node1.set_user_password("pgautofailover_replicator", "streaming_password")
 
     assert node1.wait_until_state(target_state="single")
 
@@ -55,3 +54,22 @@ def test_004_failover():
     cluster.monitor.failover()
     assert node2.wait_until_state(target_state="primary")
     assert node1.wait_until_state(target_state="secondary")
+
+def test_005_change_replication_passwords():
+    node2.config_set("replication.password", "new_streaming_password")
+    node1.config_set("replication.password", "new_streaming_password")
+
+    # Test that
+    # - the primary has the new password
+    # - the secondary can connect using the new password
+    # - replication still works
+
+    # TODO: make sure the primary has the new password
+
+    # Restart the secondary to prove it can reconnect with the new password.
+    node1.restart_postgres()
+
+    # TODO: wait for replication connection
+
+    node2.run_sql_query("INSERT INTO t1 VALUES (3), (4)")
+    print(node1.run_sql_query("SELECT COUNT(*) FROM t1"))
